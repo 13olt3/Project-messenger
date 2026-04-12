@@ -37,6 +37,12 @@ const userController = {
             username: username,
             password: hashedPassword,
             email: email,
+            profile: {
+              create: {
+                bio: "Hello, new user here!",
+                profilePic: "default",
+              },
+            },
           },
         });
         return res.status(201).json({ message: "User created!" });
@@ -66,12 +72,36 @@ const userController = {
       }
 
       const token = jwt.sign({ id: userMatch.id }, process.env.JWT_SECRET, {
-        expiresIn: "1h",
+        expiresIn: "30",
       });
 
       res.json({ message: "successful", token: token });
     },
   ],
-};
 
+  getUser: [
+    passport.authenticate("jwt", { session: false }),
+    async (req, res) => {
+      const username = req.params.username;
+      const data = await prisma.user.findUnique({
+        where: { username: username },
+        include: { profile: true },
+      });
+      console.log(data);
+      res.json(data);
+    },
+  ],
+  getUsers: [
+    passport.authenticate("jwt", { session: false }),
+    async (req, res) => {
+      try {
+        const data = await prisma.user.findMany();
+        res.json(data);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    },
+  ],
+};
+//passport.authenticate('jwt', { session: false }),
 module.exports = userController;

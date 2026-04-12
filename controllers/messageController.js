@@ -19,7 +19,7 @@ const messageController = {
     async (req, res) => {
       try {
         const allMessages = await prisma.message.findMany({
-          where: { senderId: req.user.id },
+          where: { senderId: 2 },
         });
         res.status(201).json(allMessages);
       } catch (err) {
