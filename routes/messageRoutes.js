@@ -3,7 +3,10 @@ const messageController = require("../controllers/messageController");
 
 const messageRouter = Router();
 
+messageRouter.get("/", messageController.getContacts);
+
+messageRouter.get("/:username", messageController.getMessages);
+
 messageRouter.post("/:id", messageController.sendMessage);
-messageRouter.get("/", messageController.getMessages);
 
 module.exports = messageRouter;

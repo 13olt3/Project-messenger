@@ -14,14 +14,70 @@ const validateMessage = [
 ];
 
 const messageController = {
+  getContacts: [
+    passport.authenticate("jwt", { session: false }),
+    async (req, res) => {
+      try {
+        const contacts = await prisma.user.findMany({
+          where: {
+            OR: [
+              {
+                receivedMessages: {
+                  some: { senderId: Number(req.user.id) },
+                },
+              },
+              {
+                sentMessages: {
+                  some: { receiverId: Number(req.user.id) },
+                },
+              },
+            ],
+          },
+          select: {
+            id: true,
+            username: true,
+            profile: {
+              select: { profilePic: true },
+            },
+          },
+        });
+        // this prisma query finds all the users that this user has either sent to or received a message from
+        // console.log(contacts);
+        res.status(201).json(contacts);
+      } catch (err) {
+        res.status(500).json({ error: "Internal Server Error" });
+      }
+    },
+  ],
   getMessages: [
     passport.authenticate("jwt", { session: false }),
     async (req, res) => {
       try {
-        const allMessages = await prisma.message.findMany({
-          where: { senderId: 2 },
+        const receiverUsername = req.params.username;
+        const messageData = await prisma.message.findMany({
+          where: {
+            OR: [
+              {
+                sender: { username: req.user.username },
+                receiver: { username: receiverUsername },
+              },
+              {
+                sender: { username: receiverUsername },
+                receiver: { username: req.user.username },
+              },
+            ],
+          },
+          orderBy: {
+            time: "asc",
+          },
+          include: {
+            sender: {
+              select: { username: true },
+            },
+          },
         });
-        res.status(201).json(allMessages);
+        console.log(messageData);
+        res.status(201).json(messageData);
       } catch (err) {
         res.status(500).json({ error: "Internal Server Error" });
       }

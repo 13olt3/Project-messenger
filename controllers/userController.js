@@ -4,6 +4,11 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 
+const supabase = require("../config/supabaseClient");
+const multer = require("multer");
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 const validateUser = [
   body("username").trim().notEmpty().withMessage("Username is required"),
   body("email")
@@ -72,7 +77,7 @@ const userController = {
       }
 
       const token = jwt.sign({ id: userMatch.id }, process.env.JWT_SECRET, {
-        expiresIn: "30",
+        expiresIn: "1h",
       });
 
       res.json({ message: "successful", token: token });
@@ -87,16 +92,51 @@ const userController = {
         where: { username: username },
         include: { profile: true },
       });
-      console.log(data);
+      // console.log(data);
       res.json(data);
     },
   ],
+
   getUsers: [
     passport.authenticate("jwt", { session: false }),
     async (req, res) => {
       try {
         const data = await prisma.user.findMany();
         res.json(data);
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    },
+  ],
+
+  uploadPic: [
+    passport.authenticate("jwt", { session: false }),
+    upload.single("profilePic"),
+    async (req, res) => {
+      console.log(req.body);
+      console.log(req.file);
+      try {
+        if (!req.file) return res.status(400).send("No file uploaded.");
+        const file = req.file;
+        const filePath = `profile_pics/${Date.now()}-${file.originalname}`;
+
+        const { data, error } = await supabase.storage
+          .from("uploaded_files")
+          .upload(filePath, file.buffer, {
+            contentType: file.mimetype,
+            upsert: false,
+          });
+        if (error) {
+          console.error("Supabase Upload Error:", error);
+          throw error; // This will jump to your catch block
+        }
+        const downloadUrl = supabase.storage
+          .from("uploaded_files")
+          .getPublicUrl(data.path);
+        if (error) throw error;
+
+        console.log(downloadUrl);
+        res.status(200).json("upload successful");
       } catch (err) {
         res.status(500).json({ error: err.message });
       }
