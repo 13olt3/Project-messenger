@@ -7,6 +7,6 @@ messageRouter.get("/", messageController.getContacts);
 
 messageRouter.get("/:username", messageController.getMessages);
 
-messageRouter.post("/:id", messageController.sendMessage);
+messageRouter.post("/:username", messageController.sendMessage);
 
 module.exports = messageRouter;

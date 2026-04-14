@@ -94,12 +94,14 @@ const messageController = {
         return res.status(400).json({ errors: errors.array() });
       }
       try {
-        const receiverId = req.params.id;
+        const receiver = await prisma.user.findUnique({
+          where: { username: req.params.username },
+        });
         const newMessage = await prisma.message.create({
           data: {
             body: body,
             senderId: req.user.id,
-            receiverId: Number(receiverId),
+            receiverId: Number(receiver.id),
           },
         });
         res.status(201).json(newMessage);

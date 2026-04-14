@@ -8,7 +8,7 @@ userRouter.post("/login", userController.loginUser);
 userRouter.get("/allusers", userController.getUsers);
 
 userRouter.post("/upload", userController.uploadPic);
-
+userRouter.put("/:username", userController.editBio);
 userRouter.get("/:username", userController.getUser); // view profile
 
 module.exports = userRouter;

@@ -7,7 +7,19 @@ const passport = require("passport");
 const supabase = require("../config/supabaseClient");
 const multer = require("multer");
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // Limit to 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "image/png" || file.mimetype === "image/jpeg") {
+      cb(null, true);
+    } else {
+      cb(new Error("Only .png and .jpg allowed!"), false);
+    }
+  },
+});
 
 const validateUser = [
   body("username").trim().notEmpty().withMessage("Username is required"),
@@ -23,6 +35,9 @@ const validateUser = [
 const validateLogin = [
   body("username").trim().notEmpty().withMessage("Username is required"),
   body("password").isLength({ min: 1 }),
+];
+const validateBio = [
+  body("bio").trim().notEmpty().withMessage("Bio cannot be empty."),
 ];
 
 const userController = {
@@ -90,7 +105,7 @@ const userController = {
       const username = req.params.username;
       const data = await prisma.user.findUnique({
         where: { username: username },
-        include: { profile: true },
+        select: { id: true, username: true, profile: true },
       });
       // console.log(data);
       res.json(data);
@@ -113,7 +128,6 @@ const userController = {
     passport.authenticate("jwt", { session: false }),
     upload.single("profilePic"),
     async (req, res) => {
-      console.log(req.body);
       console.log(req.file);
       try {
         if (!req.file) return res.status(400).send("No file uploaded.");
@@ -130,13 +144,47 @@ const userController = {
           console.error("Supabase Upload Error:", error);
           throw error; // This will jump to your catch block
         }
-        const downloadUrl = supabase.storage
+        const urlData = supabase.storage
           .from("uploaded_files")
           .getPublicUrl(data.path);
         if (error) throw error;
 
-        console.log(downloadUrl);
+        console.log(req.user.id);
+        console.log(urlData.data.publicUrl);
+        await prisma.profile.update({
+          where: { userId: req.user.id },
+          data: {
+            profilePic: urlData.data.publicUrl,
+          },
+        });
         res.status(200).json("upload successful");
+      } catch (err) {
+        res.status(500).json({ error: err.message });
+      }
+    },
+  ],
+
+  editBio: [
+    passport.authenticate("jwt", { session: false }),
+    validateBio,
+    async (req, res) => {
+      try {
+        const data = matchedData(req);
+
+        const valid = await prisma.user.findUnique({
+          where: { username: req.params.username },
+        });
+        if (req.user.id !== valid.id) {
+          return res
+            .status(403)
+            .json({ message: "You can't edit someone else's bio!" });
+        } //user id check
+
+        await prisma.profile.update({
+          where: { userId: req.user.id },
+          data: { bio: data.bio },
+        });
+        res.status(200).json("update successful");
       } catch (err) {
         res.status(500).json({ error: err.message });
       }
