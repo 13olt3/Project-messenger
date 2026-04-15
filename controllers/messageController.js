@@ -140,7 +140,7 @@ const messageController = {
             body: body,
             senderId: req.user.id,
             receiverId: Number(receiver.id),
-            imageUrl: urlData.data.publicUrl,
+            imageUrl: urlData.data.publicUrl || null,
           },
         });
         res.status(201).json(newMessage);
