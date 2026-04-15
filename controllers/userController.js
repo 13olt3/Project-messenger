@@ -116,7 +116,15 @@ const userController = {
     passport.authenticate("jwt", { session: false }),
     async (req, res) => {
       try {
-        const data = await prisma.user.findMany();
+        const data = await prisma.user.findMany({
+          include: {
+            profile: {
+              select: {
+                profilePic: true,
+              },
+            },
+          },
+        });
         res.json(data);
       } catch (err) {
         res.status(500).json({ error: err.message });
