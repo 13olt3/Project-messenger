@@ -105,7 +105,7 @@ const messageController = {
     validateMessage,
 
     async (req, res) => {
-      console.log(req.file);
+      // console.log(req.file);
       let urlData = null;
       if (req.file) {
         const file = req.file;
@@ -140,7 +140,7 @@ const messageController = {
             body: body,
             senderId: req.user.id,
             receiverId: Number(receiver.id),
-            imageUrl: urlData.data.publicUrl || null,
+            imageUrl: urlData?.data?.publicUrl ?? null,
           },
         });
         res.status(201).json(newMessage);
