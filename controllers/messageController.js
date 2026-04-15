@@ -4,11 +4,26 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const passport = require("passport");
 
+const supabase = require("../config/supabaseClient");
+const multer = require("multer");
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // Limit to 5MB
+  },
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype === "image/png" || file.mimetype === "image/jpeg") {
+      cb(null, true);
+    } else {
+      cb(new Error("Only .png and .jpg allowed!"), false);
+    }
+  },
+});
+
 const validateMessage = [
   body("body")
     .trim()
-    .notEmpty()
-    .withMessage("Message must have a body.")
     .isLength({ max: 500 })
     .withMessage("Message is too long (max 500 chars)"),
 ];
@@ -86,8 +101,31 @@ const messageController = {
 
   sendMessage: [
     passport.authenticate("jwt", { session: false }),
+    upload.single("imgMsg"),
     validateMessage,
+
     async (req, res) => {
+      console.log(req.file);
+      let urlData = null;
+      if (req.file) {
+        const file = req.file;
+        const filePath = `chat_images/${Date.now()}-${file.originalname}`;
+
+        const { data, error } = await supabase.storage
+          .from("uploaded_files")
+          .upload(filePath, file.buffer, {
+            contentType: file.mimetype,
+            upsert: false,
+          });
+        if (error) {
+          console.error("Supabase Upload Error:", error);
+          throw error; // This will jump to your catch block
+        }
+        urlData = supabase.storage
+          .from("uploaded_files")
+          .getPublicUrl(data.path);
+        if (error) throw error;
+      }
       const { body } = matchedData(req);
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -102,6 +140,7 @@ const messageController = {
             body: body,
             senderId: req.user.id,
             receiverId: Number(receiver.id),
+            imageUrl: urlData.data.publicUrl,
           },
         });
         res.status(201).json(newMessage);

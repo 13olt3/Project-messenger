@@ -24,8 +24,11 @@ model User {
 
 model Message {
   id          Int       @id @default(autoincrement())
-  body        String  
+  body        String?
+  imageUrl    String?  
   time        DateTime  @default(now()) 
+
+
   sender      User?     @relation("SentMessages", fields: [senderId], references:[id], onDelete: SetNull)
   senderId    Int?
   receiver    User?     @relation("ReceivedMessages", fields: [receiverId], references:[id], onDelete: SetNull)
