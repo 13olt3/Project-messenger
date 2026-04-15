@@ -91,7 +91,7 @@ const messageController = {
             },
           },
         });
-        console.log(messageData);
+        // console.log(messageData);
         res.status(201).json(messageData);
       } catch (err) {
         res.status(500).json({ error: "Internal Server Error" });
