@@ -1,4 +1,4 @@
-#  Mini Message Board
+#  Messenger Browser App
 
 A full-stack web application built as part of **The Odin Project** Node.js curriculum. This project demonstrates the implementation of the MVC (Model-View-Controller) pattern, integration with a relational database, and deployment to a cloud environment.
 
